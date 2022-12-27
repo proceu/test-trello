@@ -1,0 +1,59 @@
+version: "3.7"
+services:
+  nginx_test_trello:
+    image: nginx:1.16-alpine
+    container_name: nginx_test_trello
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    volumes:
+      - ./api:/var/www/api
+      - ./docker/nginx:/etc/nginx/conf.d/
+      - ./docker/certs:/etc/nginx/certs
+    networks:
+      - test_trello_network
+    links:
+      - api_test_trello
+
+  db_test_trello:
+    image: mysql:5.7.22
+    container_name: db_test_trello
+    restart: unless-stopped
+    tty: true
+    environment:
+      MYSQL_DATABASE: test_app_db
+      MYSQL_ROOT_PASSWORD: test_app_password
+      MYSQL_PASSWORD: test_app_password
+      MYSQL_USER: test_app_user
+      SERVICE_TAGS: dev
+      SERVICE_NAME: mysql
+    volumes:
+      - ./db_data:/var/lib/mysql
+      - ./docker/mysql:/etc/mysql/conf.d
+    networks:
+      - test_trello_network
+
+  api_test_trello:
+    build:
+      args:
+        user: vlad
+        uid: 1000
+      context: ./docker
+      dockerfile: Dockerfile
+    tty: true
+    container_name: api_test_trello
+    restart: unless-stopped
+    working_dir: /var/www/api
+    volumes:
+      - ./api:/var/www/api
+    networks:
+      - test_trello_network
+    links:
+      - db_test_trello
+
+volumes:
+  db_data:
+
+networks:
+  test_trello_network:
+    driver: bridge
